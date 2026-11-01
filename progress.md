@@ -61,3 +61,13 @@ All passed with no errors. Nobody has played it on 3 separate machines yet.
 
 - A capture cancels any pending report, since captures and reports share one cooldown.
 - F11 toggles fullscreen.
+
+## Phase 2 update — Nov 1, 2026
+
+The original Milestone 1 notes above are retained as handoff history. Phase 2 adds
+scheduled and emergency dinner overlays, living-player chat, voting, vote-based
+elimination, basic win checks and a winner/TA-reveal screen. It does not complete
+the full map, grading or coursework progress. See README for the item-by-item
+requirements report, testing evidence and known limitations, and PHASE2_PLAN.md
+for the selected scope. Do not treat the original sign-off checklist as a claim
+that human multi-machine playtesting has occurred.
