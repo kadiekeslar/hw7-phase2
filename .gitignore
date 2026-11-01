@@ -1,0 +1,4 @@
+# Godot-generated cache; keep the handoff source and scene files tracked.
+.godot/
+# Machine-specific relay settings and credentials.
+config/local.cfg
