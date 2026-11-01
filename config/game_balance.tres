@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="GameBalance" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://config/game_balance.gd" id="1_balance"]
+
+[resource]
+script = ExtResource("1_balance")
+week_length_sec = 60.0
+semester_weeks = 15
+move_speed_px = 64.0
+interpolation_delay_ms = 100
+vision_radius_px = 96.0
+interact_radius_px = 24.0
+collab_request_timeout_sec = 10.0
+proof_chain_length = 7
+proof_chain_decoys = 2
+proof_chain_wrong_lock_sec = 2.0
+report_expiry_weeks = 1.0
+report_cooldown_weeks = 2.0
+default_port = 7777
+position_sync_hz = 20
+min_players = 5
+dev_min_players = 2
+max_players = 8
