@@ -20,6 +20,10 @@ var clock_running: bool = false
 var semester_over: bool = false
 var dinner_active: bool = false
 var dinner_panel: DinnerPanel
+var completed_tasks: Array[StringName] = []
+var coursework_at_dinner: float = 0.0
+var grading_completed: int = 0
+var grading_required: int = 1
 
 
 func _ready() -> void:
@@ -121,6 +125,12 @@ func rq_task_cancel(session_id: int) -> void:
 func rq_file_report(target: int) -> void:
 	if server:
 		server.file_report(_sender(), target)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func rq_solo(task_id: StringName) -> void:
+	if server:
+		server.request_solo(_sender(), task_id)
 
 
 @rpc("any_peer", "call_local", "reliable")
@@ -247,3 +257,25 @@ func cl_game_over(students_win: bool, ta: int, reason: String) -> void:
 	hud.show_semester_over()
 	hud.show_winner(students_win, ta, reason)
 	DevTools.log_line("winner: %s; %s" % ["Students" if students_win else "TA", reason])
+
+
+## Private assignment state, never an opponent's completion list.
+@rpc("authority", "call_local", "reliable")
+func cl_assignments(completed: Array) -> void:
+	completed_tasks.assign(completed)
+	hud.refresh_assignments()
+
+
+## Sent only to the TA. Students never receive the grading counter.
+@rpc("authority", "call_local", "reliable")
+func cl_grading(completed: int, required: int) -> void:
+	grading_completed = completed
+	grading_required = required
+	DevTools.log_line("private grading: %d/%d" % [completed, required])
+
+
+## Public progress is a snapshot taken at the start of a dinner, not live work.
+@rpc("authority", "call_local", "reliable")
+func cl_coursework(fraction: float) -> void:
+	coursework_at_dinner = fraction
+	DevTools.log_line("coursework at dinner: %.0f%%" % (fraction * 100))

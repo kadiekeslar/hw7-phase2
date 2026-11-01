@@ -18,6 +18,9 @@ extends Node
 ##   --discussion-sec=N --voting-sec=N --result-sec=N  dinner test timers
 ##   --bot-vote=NAME|skip --bot-chat=TEXT  exercise dinner voting and chat
 ##   --bot-call-dinner=SEC      call an emergency dinner after entering the game
+##   --grading-sec=N --grading-batches=N  accelerated race tests
+##   --bot-work              walk from the Problem Set to programming after completion
+##   --bot-grade / --bot-program   start nearby solo work and complete it
 ##   --shot=PATH --shot-after=SEC   save a screenshot
 ##   --quit-after=SEC          quit after this many seconds
 
@@ -53,6 +56,10 @@ func _ready() -> void:
 		Session.balance.dinner_discussion_sec = get_flag("discussion-sec", "60").to_float()
 		Session.balance.dinner_voting_sec = get_flag("voting-sec", "20").to_float()
 		Session.balance.dinner_result_sec = get_flag("result-sec", "4").to_float()
+	if has("grading-sec") or has("grading-batches"):
+		Session.balance = Session.balance.duplicate()
+		Session.balance.grading_batch_sec = get_flag("grading-sec", "15").to_float()
+		Session.balance.grading_batches_required = get_flag("grading-batches", "4").to_int()
 	if has("shot"):
 		_screenshot_later(get_flag("shot"), get_flag("shot-after", "3").to_float())
 	if has("quit-after"):
@@ -76,6 +83,10 @@ func log_line(text: String) -> void:
 
 ## Direction a bot should walk this frame, or ZERO when not botting or arrived.
 func bot_move_dir(from: Vector2) -> Vector2:
+	if has("bot-work") and Session.in_game:
+		var game := get_tree().current_scene as Game
+		if game:
+			flags["bot-goto"] = "478,236" if TaskRegistry.PROBLEM_SET in game.completed_tasks else "350,108"
 	if not has("bot-goto"):
 		return Vector2.ZERO
 	var xy := get_flag("bot-goto").split(",")

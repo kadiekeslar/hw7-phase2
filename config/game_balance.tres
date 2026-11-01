@@ -28,3 +28,5 @@ dinner_result_sec = 4.0
 dinner_calls_per_player = 1
 chat_character_limit = 120
 chat_interval_sec = 1.0
+grading_batch_sec = 15.0
+grading_batches_required = 4

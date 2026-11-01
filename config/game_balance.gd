@@ -16,6 +16,11 @@ extends Resource
 @export var chat_character_limit: int = 120
 @export var chat_interval_sec: float = 1.0
 
+@export_group("Grading")
+## Short initial balance for the two-assignment slice; full semester tuning remains.
+@export var grading_batch_sec: float = 15.0
+@export var grading_batches_required: int = 4
+
 @export_group("Movement")
 ## Walking speed in pixels per second (16 px = 1 tile).
 @export var move_speed_px: float = 64.0

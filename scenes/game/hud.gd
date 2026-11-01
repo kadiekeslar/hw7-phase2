@@ -53,6 +53,10 @@ var _failed_detail: Label
 var _over_overlay: Control
 var _menu_overlay: Control
 var _locally_failed: bool = false
+var _solo_task: StringName = &""
+var _task_list_overlay: Control
+var _task_list_text: Label
+var _task_list_button: Button
 var _prompt_target: int = 0
 var _prompt_since_ms: int = 0
 
@@ -173,6 +177,18 @@ func setup(game: Game) -> void:
 	menu_box.add_child(UI.button("Resume", func() -> void: _menu_overlay.visible = false))
 	menu_box.add_child(UI.button("Leave game", Session.leave))
 
+	_task_list_button = UI.button("Tasks (Tab)", _toggle_tasks)
+	_task_list_button.position = Vector2(410, 248)
+	root.add_child(_task_list_button)
+	_task_list_overlay = _overlay(root, Color(0.18, 0.13, 0.22, 0.85))
+	var list_box := UI.panel_with_vbox(UI.center_screen(_task_list_overlay), 6)
+	list_box.custom_minimum_size.x = 300
+	list_box.add_child(UI.centered_label("Cover assignments" if _is_ta else "Your coursework", 12))
+	_task_list_text = _wrapped("")
+	list_box.add_child(_task_list_text)
+	list_box.add_child(UI.centered_label("TA cover work never fills the student bar." if _is_ta else "Finish both assignments. You can help others with the Problem Set.", 8))
+	list_box.add_child(UI.button("Close (Tab / Esc)", _toggle_tasks))
+	refresh_assignments()
 	_invite.get_parent().visible = false
 	_waiting.get_parent().visible = false
 
@@ -218,6 +234,7 @@ func _process(delta: float) -> void:
 	elif _game.clock_running:
 		_game.clock_elapsed += delta
 	_update_week()
+	_task_list_button.visible = not _game.dinner_active and not _game.semester_over and not _locally_failed and _minigame == null
 	if _is_ta:
 		_update_ta_status()
 	_reveal.visible = now < _reveal_until_ms
@@ -252,15 +269,21 @@ func _update_ta_status() -> void:
 		_ta_label.text = "Cooldown %d:%02d" % [int(cooldown) / 60, int(cooldown) % 60]
 	else:
 		_ta_label.text = "Report/capture ready"
+	_ta_label.text += " | Graded %d/%d" % [_game.grading_completed, _game.grading_required]
 
 
 func _modal_open() -> bool:
-	return _game.dinner_active or _reveal.visible or _minigame != null or _invite.get_parent().visible \
+	return _task_list_overlay.visible or _game.dinner_active or _reveal.visible or _minigame != null or _invite.get_parent().visible \
 			or _waiting.get_parent().visible or _locally_failed or _game.semester_over \
 			or _menu_overlay.visible
 
 
 func _update_prompt() -> void:
+	_solo_task = _find_solo_station() if not _modal_open() else &""
+	if _solo_task != &"":
+		_collab_row.visible = true
+		_collab_button.text = "Grade papers (E)" if TaskRegistry.is_grading(_solo_task) else "Programming assignment (E)"
+		return
 	_prompt_target = _find_partner() if not _modal_open() else 0
 	_collab_row.visible = _prompt_target != 0
 	if _prompt_target == 0:
@@ -283,6 +306,8 @@ func _find_partner() -> int:
 	var radius := _game.balance.interact_radius_px
 	var stations := _game.stations()
 	for task_id: StringName in stations:
+		if TaskRegistry.player_count(task_id) != 2:
+			continue
 		var station := stations[task_id]
 		if me.position.distance_to(station) > radius:
 			continue
@@ -302,11 +327,26 @@ func _find_partner() -> int:
 
 
 func _ask_partner() -> void:
+	if _solo_task != &"" and not _modal_open():
+		_game.rq_solo.rpc_id(NetworkService.HOST_ID, _solo_task)
+		return
 	if _prompt_target != 0 and not _modal_open():
 		_game.rq_collab.rpc_id(NetworkService.HOST_ID, _prompt_target)
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("task_list") and not _game.dinner_active and not _game.semester_over:
+		get_viewport().set_input_as_handled()
+		_toggle_tasks()
+		return
+	if event.is_action_pressed("interact") and not _modal_open():
+		get_viewport().set_input_as_handled()
+		_ask_partner()
+		return
+	if event.is_action_pressed("menu") and _task_list_overlay.visible:
+		get_viewport().set_input_as_handled()
+		_task_list_overlay.visible = false
+		return
 	if event.is_action_pressed("menu") and _minigame == null and not _game.semester_over and not _game.dinner_active:
 		get_viewport().set_input_as_handled()
 		_menu_overlay.visible = not _menu_overlay.visible
@@ -412,6 +452,7 @@ func show_failed(peer_id: int, reason: String = "You were captured by the TA.") 
 	DevTools.log_line("sees %s fail" % _game.player_name(peer_id))
 	if peer_id == multiplayer.get_unique_id():
 		_locally_failed = true
+		_task_list_overlay.visible = false
 		_failed_detail.text = reason
 		_failed_overlay.visible = true
 		_menu_overlay.visible = false
@@ -445,6 +486,7 @@ func close_report(message: String) -> void:
 
 
 func show_semester_over() -> void:
+	_task_list_overlay.visible = false
 	_failed_overlay.visible = false
 	_menu_overlay.visible = false
 	_invite.get_parent().visible = false
@@ -466,3 +508,43 @@ func show_winner(students_win: bool, ta: int, reason: String) -> void:
 
 func is_failed() -> bool:
 	return _locally_failed
+
+
+func _find_solo_station() -> StringName:
+	var me := _game.local_player
+	if me == null or not me.visible:
+		return &""
+	var stations := _game.stations()
+	for task_id: StringName in stations:
+		if TaskRegistry.player_count(task_id) != 1:
+			continue
+		if TaskRegistry.is_grading(task_id) and not _is_ta:
+			continue
+		if task_id in _game.completed_tasks:
+			continue
+		if me.position.distance_to(stations[task_id]) <= _game.balance.interact_radius_px:
+			if DevTools.has("bot-grade") or DevTools.has("bot-program"):
+				_bot_start_solo.call_deferred(task_id)
+			return task_id
+	return &""
+
+
+func _bot_start_solo(task_id: StringName) -> void:
+	if not _modal_open():
+		_game.rq_solo.rpc_id(NetworkService.HOST_ID, task_id)
+
+
+func _toggle_tasks() -> void:
+	if _game.dinner_active or _game.semester_over or _locally_failed or _minigame != null:
+		return
+	_task_list_overlay.visible = not _task_list_overlay.visible
+	refresh_assignments()
+
+
+func refresh_assignments() -> void:
+	if not is_instance_valid(_task_list_text):
+		return
+	var lines: Array[String] = []
+	for task_id: StringName in TaskRegistry.COURSEWORK_TASKS:
+		lines.append("%s %s" % ["Done:" if task_id in _game.completed_tasks else "To do:", TaskRegistry.display_name(task_id)])
+	_task_list_text.text = "\n".join(lines)

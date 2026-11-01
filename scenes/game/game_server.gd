@@ -18,6 +18,9 @@ var ta_peer: int = 0
 var started: bool = false
 var over: bool = false
 
+var coursework: CourseworkTracker
+var _ta_cover_done: Dictionary = {}
+var _grading_completed: int = 0
 var dinner: DinnerLogic
 var _dinner_phase: String = "closed"
 var _dinner_deadline: float = 0.0
@@ -54,6 +57,11 @@ func setup(p_game: Game) -> void:
 	tracker = ReportTracker.new(clock.weeks_to_sec(balance.report_expiry_weeks),
 			clock.weeks_to_sec(balance.report_cooldown_weeks))
 	ta_peer = Session.ta_peer
+	var students: Array[int] = []
+	for id: int in game.players:
+		if id != ta_peer:
+			students.append(id)
+	coursework = CourseworkTracker.new(students, TaskRegistry.COURSEWORK_TASKS)
 	for id: int in game.players:
 		_alive[id] = true
 		_connected[id] = id == NetworkService.HOST_ID or id in multiplayer.get_peers()
@@ -136,9 +144,13 @@ func _start() -> void:
 	DevTools.log_line("game started, TA is %s" % game.player_name(ta_peer))
 	game.cl_clock.rpc(clock.elapsed_sec, true)
 	_to(ta_peer, game.cl_ta_cooldown, [tracker.cooldown_until_sec])
+	for id: int in game.players:
+		_send_private_work(id)
 
 
 func _send_state_to(peer: int) -> void:
+	_send_private_work(peer)
+	_to(peer, game.cl_coursework, [game.coursework_at_dinner])
 	game.cl_clock.rpc_id(peer, clock.elapsed_sec, not over and _dinner_phase == "closed")
 	if over:
 		game.cl_game_over.rpc_id(peer, _students_won, ta_peer, _end_reason)
@@ -215,6 +227,8 @@ func _shared_station(a: int, b: int) -> StringName:
 	var reach := balance.interact_radius_px + DISTANCE_SLACK_PX
 	var stations := game.stations()
 	for task_id: StringName in stations:
+		if TaskRegistry.player_count(task_id) != 2:
+			continue
 		var pos := stations[task_id]
 		if game.players[a].position.distance_to(pos) <= reach \
 				and game.players[b].position.distance_to(pos) <= reach:
@@ -227,6 +241,10 @@ func request_collab(from: int, to: int) -> void:
 		return
 	var task_id := _shared_station(from, to)
 	if task_id == &"":
+		return
+	# Finished students may help a classmate, but cannot farm repeat credit.
+	if (from == ta_peer or task_id in coursework.completed_for(from)) and (to == ta_peer or task_id in coursework.completed_for(to)):
+		_to(from, game.cl_toast, ["Both partners already finished this assignment."])
 		return
 	var request_id := _next_id
 	_next_id += 1
@@ -340,6 +358,19 @@ func _end_session(session_id: int, completed: bool, message: String) -> void:
 		return
 	var session: Dictionary = _sessions[session_id]
 	_sessions.erase(session_id)
+	if completed:
+		if TaskRegistry.is_grading(session["task_id"]):
+			_grading_completed += 1
+			_send_private_work(ta_peer)
+		else:
+			for peer: int in session["seats"]:
+				if peer == ta_peer:
+					_ta_cover_done[session["task_id"]] = true
+				else:
+					coursework.credit(peer, session["task_id"])
+				_send_private_work(peer)
+		# Check after this frame's requests so simultaneous completion favors students.
+		_check_work_win.call_deferred()
 	for peer: int in session["seats"]:
 		_in_session.erase(peer)
 		game.players[peer].frozen = over or _dinner_phase != "closed" or not _alive[peer]
@@ -403,6 +434,8 @@ func request_dinner(sender: int) -> void:
 
 func _start_dinner(message: String) -> void:
 	dinner = DinnerLogic.new(_living_voters())
+	for id: int in dinner.voters:
+		_to(id, game.cl_coursework, [coursework.fraction()])
 	_dinner_phase = "discussion"
 	_dinner_message = message
 	_dinner_deadline = now_real() + balance.dinner_discussion_sec
@@ -496,3 +529,37 @@ func _check_auto_win() -> void:
 			students += 1
 	if students < 2:
 		_finish_game(false, "Fewer than two living CMU students remain.")
+
+
+# --- Coursework and TA grading --------------------------------------------
+
+func request_solo(sender: int, task_id: StringName) -> void:
+	if not _can_act(sender) or not TaskRegistry.TASKS.has(task_id):
+		return
+	if TaskRegistry.player_count(task_id) != 1 or not game.stations().has(task_id):
+		return
+	if game.players[sender].position.distance_to(game.stations()[task_id]) > balance.interact_radius_px + DISTANCE_SLACK_PX:
+		return
+	if TaskRegistry.is_grading(task_id):
+		if sender != ta_peer:
+			return
+	elif (task_id in _ta_cover_done if sender == ta_peer else task_id in coursework.completed_for(sender)):
+		_to(sender, game.cl_toast, ["You already finished this assignment."])
+		return
+	_start_session(task_id, [sender])
+
+
+func _send_private_work(peer: int) -> void:
+	_to(peer, game.cl_assignments, [_ta_cover_done.keys() if peer == ta_peer else coursework.completed_for(peer)])
+	if peer == ta_peer:
+		_to(peer, game.cl_grading, [_grading_completed, maxi(1, balance.grading_batches_required)])
+
+
+func _check_work_win() -> void:
+	if over:
+		return
+	var winner := WinConditions.work_winner(coursework.fraction(), float(_grading_completed) / maxi(1, balance.grading_batches_required))
+	if winner == "students":
+		_finish_game(true, "All assigned coursework is complete.")
+	elif winner == "ta":
+		_finish_game(false, "The TA finished grading first.")

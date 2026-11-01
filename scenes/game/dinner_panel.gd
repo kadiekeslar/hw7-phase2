@@ -6,6 +6,7 @@ var _game: Game
 var _overlay: Control
 var _title: Label
 var _timer: Label
+var _coursework_bar: ProgressBar
 var _messages: RichTextLabel
 var _entry: LineEdit
 var _votes: GridContainer
@@ -39,6 +40,10 @@ func setup(game: Game) -> void:
 	box.custom_minimum_size.x = 360
 	_title = UI.centered_label("Rev Noodle dinner", 12)
 	box.add_child(_title)
+	_coursework_bar = ProgressBar.new()
+	_coursework_bar.custom_minimum_size = Vector2(350, 10)
+	_coursework_bar.show_percentage = false
+	box.add_child(_coursework_bar)
 	_timer = UI.centered_label("")
 	box.add_child(_timer)
 	_messages = RichTextLabel.new()
@@ -75,6 +80,8 @@ func _process(_delta: float) -> void:
 
 func show_phase(phase: String, seconds: float, eligible: Array, message: String) -> void:
 	var starting := phase == "discussion" and _phase != "discussion"
+	_title.text = "Rev Noodle - Coursework %d%%" % roundi(_game.coursework_at_dinner * 100)
+	_coursework_bar.value = _game.coursework_at_dinner * 100
 	_phase = phase
 	_deadline_ms = Time.get_ticks_msec() + int(seconds * 1000.0)
 	_overlay.visible = phase != "closed"

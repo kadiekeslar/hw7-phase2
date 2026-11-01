@@ -22,6 +22,11 @@ const SHADOW := Color(0.36, 0.28, 0.45, 0.25)
 ## task_id -> station position.
 var stations: Dictionary[StringName, Vector2] = {
 	TaskRegistry.PROBLEM_SET: Vector2(350, 108),
+	TaskRegistry.PROGRAMMING: Vector2(478, 236),
+	&"grading_west": Vector2(88, 184),
+	&"grading_south": Vector2(204, 292),
+	&"grading_east": Vector2(488, 288),
+	&"grading_north": Vector2(456, 148),
 }
 var spawn_points: Array[Vector2] = []
 
@@ -61,6 +66,10 @@ func build(world: Node2D, balance: GameBalance) -> void:
 	for pos: Vector2 in [Vector2(28, 64), Vector2(548, 64), Vector2(28, 334), Vector2(548, 334)]:
 		_prop(world, &"plant", pos, Vector2(10, 6), 14, Player.FURNITURE_LAYER)
 
+	# Keep the inherited room and add small desks rather than replacing the map.
+	for task_id: StringName in stations:
+		if TaskRegistry.is_grading(task_id):
+			_prop(world, &"table", stations[task_id] - Vector2(0, 20), Vector2(30, 10), 6, Player.FURNITURE_LAYER)
 	for task_id: StringName in stations:
 		var station := TaskStation.new(task_id, balance.interact_radius_px)
 		station.position = stations[task_id]
