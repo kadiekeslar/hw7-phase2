@@ -18,6 +18,8 @@ var local_player: Player
 var clock_elapsed: float = 0.0
 var clock_running: bool = false
 var semester_over: bool = false
+var dinner_active: bool = false
+var dinner_panel: DinnerPanel
 
 
 func _ready() -> void:
@@ -55,6 +57,10 @@ func _ready() -> void:
 	hud.name = "Hud"
 	add_child(hud)
 	hud.setup(self)
+	dinner_panel = DinnerPanel.new()
+	dinner_panel.name = "DinnerPanel"
+	add_child(dinner_panel)
+	dinner_panel.setup(self)
 
 	if multiplayer.is_server():
 		server = GameServer.new()
@@ -117,6 +123,24 @@ func rq_file_report(target: int) -> void:
 		server.file_report(_sender(), target)
 
 
+@rpc("any_peer", "call_local", "reliable")
+func rq_dinner() -> void:
+	if server:
+		server.request_dinner(_sender())
+
+
+@rpc("any_peer", "call_local", "reliable")
+func rq_vote(target: int) -> void:
+	if server:
+		server.cast_vote(_sender(), target)
+
+
+@rpc("any_peer", "call_local", "reliable")
+func rq_chat(text: String) -> void:
+	if server:
+		server.send_chat(_sender(), text)
+
+
 # --- Host -> client messages -----------------------------------------------
 
 @rpc("authority", "call_local", "unreliable_ordered")
@@ -163,10 +187,10 @@ func cl_task_finished(session_id: int, completed: bool, message: String) -> void
 
 
 @rpc("authority", "call_local", "reliable")
-func cl_player_failed(peer_id: int) -> void:
+func cl_player_failed(peer_id: int, reason: String = "You were captured by the TA.") -> void:
 	if players.has(peer_id):
 		players[peer_id].visible = false
-	hud.show_failed(peer_id)
+	hud.show_failed(peer_id, reason)
 
 
 ## TA only.
@@ -190,3 +214,36 @@ func cl_ta_cooldown(until_elapsed: float) -> void:
 @rpc("authority", "call_local", "reliable")
 func cl_toast(text: String) -> void:
 	hud.toast(text)
+
+
+@rpc("authority", "call_local", "reliable")
+func cl_dinner(phase: String, seconds: float, eligible: Array, message: String) -> void:
+	dinner_active = phase != "closed"
+	clock_running = not dinner_active and not semester_over
+	dinner_panel.show_phase(phase, seconds, eligible, message)
+
+
+@rpc("authority", "call_local", "reliable")
+func cl_chat(sender: int, text: String) -> void:
+	dinner_panel.add_message(sender, text)
+
+
+@rpc("authority", "call_local", "reliable")
+func cl_dinner_call_used() -> void:
+	dinner_panel.call_used()
+
+
+@rpc("authority", "call_local", "reliable")
+func cl_vote_received() -> void:
+	dinner_panel.vote_received()
+
+
+@rpc("authority", "call_local", "reliable")
+func cl_game_over(students_win: bool, ta: int, reason: String) -> void:
+	semester_over = true
+	clock_running = false
+	dinner_active = false
+	dinner_panel.show_phase("closed", 0, [], "")
+	hud.show_semester_over()
+	hud.show_winner(students_win, ta, reason)
+	DevTools.log_line("winner: %s; %s" % ["Students" if students_win else "TA", reason])

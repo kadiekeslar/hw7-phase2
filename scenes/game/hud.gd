@@ -47,6 +47,9 @@ var _minigame: Minigame
 var _session_id: int = -1
 
 var _failed_overlay: Control
+var _over_title: Label
+var _over_detail: Label
+var _failed_detail: Label
 var _over_overlay: Control
 var _menu_overlay: Control
 var _locally_failed: bool = false
@@ -148,12 +151,17 @@ func setup(game: Game) -> void:
 	_failed_overlay = _overlay(root, Color(0.16, 0.2, 0.36, 0.8))
 	var failed_box := UI.panel_with_vbox(UI.center_screen(_failed_overlay), 6)
 	failed_box.add_child(UI.centered_label("You failed the class", 16, UI.ALERT))
-	failed_box.add_child(UI.centered_label("You were captured by the TA."))
+	_failed_detail = UI.centered_label("You were captured by the TA.")
+	failed_box.add_child(_failed_detail)
 	failed_box.add_child(UI.centered_label("Wait here until the semester ends.", 8, UI.MUTED))
 
 	_over_overlay = _overlay(root, Color(0.18, 0.13, 0.22, 0.75))
 	var over_box := UI.panel_with_vbox(UI.center_screen(_over_overlay), 6)
-	over_box.add_child(UI.centered_label("Semester over", 16))
+	_over_title = UI.centered_label("Semester over", 16)
+	over_box.add_child(_over_title)
+	_over_detail = _wrapped("")
+	_over_detail.custom_minimum_size.x = 320
+	over_box.add_child(_over_detail)
 	if NetworkService.is_host():
 		over_box.add_child(UI.button("Back to lobby", Session.return_to_lobby))
 	else:
@@ -247,7 +255,7 @@ func _update_ta_status() -> void:
 
 
 func _modal_open() -> bool:
-	return _reveal.visible or _minigame != null or _invite.get_parent().visible \
+	return _game.dinner_active or _reveal.visible or _minigame != null or _invite.get_parent().visible \
 			or _waiting.get_parent().visible or _locally_failed or _game.semester_over \
 			or _menu_overlay.visible
 
@@ -299,7 +307,7 @@ func _ask_partner() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("menu") and _minigame == null and not _game.semester_over:
+	if event.is_action_pressed("menu") and _minigame == null and not _game.semester_over and not _game.dinner_active:
 		get_viewport().set_input_as_handled()
 		_menu_overlay.visible = not _menu_overlay.visible
 
@@ -400,10 +408,11 @@ func finish_task(session_id: int, completed: bool, message: String) -> void:
 	toast(message)
 
 
-func show_failed(peer_id: int) -> void:
+func show_failed(peer_id: int, reason: String = "You were captured by the TA.") -> void:
 	DevTools.log_line("sees %s fail" % _game.player_name(peer_id))
 	if peer_id == multiplayer.get_unique_id():
 		_locally_failed = true
+		_failed_detail.text = reason
 		_failed_overlay.visible = true
 		_menu_overlay.visible = false
 		return
@@ -448,3 +457,12 @@ func show_semester_over() -> void:
 	if DevTools.has("bot-lobby") and NetworkService.is_host():
 		await get_tree().create_timer(BOT_DELAY_SEC).timeout
 		Session.return_to_lobby()
+
+
+func show_winner(students_win: bool, ta: int, reason: String) -> void:
+	_over_title.text = "Students win!" if students_win else "The TA wins!"
+	_over_detail.text = "%s\nThe TA was %s." % [reason, _game.player_name(ta)]
+
+
+func is_failed() -> bool:
+	return _locally_failed

@@ -15,6 +15,9 @@ extends Node
 ##   --bot-play                play the correct Proof Chain card on your turn
 ##   --bot-report              file the first name in a report popup
 ##   --bot-lobby               host goes back to the lobby when the semester ends
+##   --discussion-sec=N --voting-sec=N --result-sec=N  dinner test timers
+##   --bot-vote=NAME|skip --bot-chat=TEXT  exercise dinner voting and chat
+##   --bot-call-dinner=SEC      call an emergency dinner after entering the game
 ##   --shot=PATH --shot-after=SEC   save a screenshot
 ##   --quit-after=SEC          quit after this many seconds
 
@@ -44,6 +47,12 @@ func _ready() -> void:
 	if has("week-sec"):
 		Session.balance = Session.balance.duplicate()
 		Session.balance.week_length_sec = get_flag("week-sec").to_float()
+	# Test-only timing overrides; normal games keep the spec's 60s/20s timers.
+	if has("discussion-sec") or has("voting-sec") or has("result-sec"):
+		Session.balance = Session.balance.duplicate()
+		Session.balance.dinner_discussion_sec = get_flag("discussion-sec", "60").to_float()
+		Session.balance.dinner_voting_sec = get_flag("voting-sec", "20").to_float()
+		Session.balance.dinner_result_sec = get_flag("result-sec", "4").to_float()
 	if has("shot"):
 		_screenshot_later(get_flag("shot"), get_flag("shot-after", "3").to_float())
 	if has("quit-after"):
