@@ -7,6 +7,15 @@ extends Resource
 @export var week_length_sec: float = 60.0
 @export var semester_weeks: int = 15
 
+@export_group("Dinners")
+@export var dinner_weeks: PackedInt32Array = PackedInt32Array([3, 6, 9, 12])
+@export var dinner_discussion_sec: float = 60.0
+@export var dinner_voting_sec: float = 20.0
+@export var dinner_result_sec: float = 4.0
+@export var dinner_calls_per_player: int = 1
+@export var chat_character_limit: int = 120
+@export var chat_interval_sec: float = 1.0
+
 @export_group("Movement")
 ## Walking speed in pixels per second (16 px = 1 tile).
 @export var move_speed_px: float = 64.0
