@@ -78,13 +78,13 @@ Machine-specific settings such as the relay server address go in `config/local.c
 | --- | --- |
 | WASD / arrows | Move |
 | Mouse | Click **Collaborate with [name]** when you're at a task station next to someone |
-| E | Interact (not used yet) |
-| Tab | Task list (not implemented yet) |
+| E | Start nearby solo work, grade (TA only), or invite a nearby collaborator |
+| Tab | Open/close your assignment checklist |
 | Enter | Focus chat during dinners; Enter again sends |
 | Esc | Menu |
 | F11 | Toggle fullscreen |
 
-## Phase 2: dinners and voting
+## Phase 2: dinners, voting, and coursework race
 
 The original LAN slice, movement, role assignment, Proof Chain puzzle, collaboration,
 capture, report tracking, and host/client architecture are retained. This update
@@ -109,7 +109,7 @@ New behavior:
   leading candidate, a tie between candidates, or no votes eliminates nobody.
 - Voting out the TA gives **Students win!**; a wrong vote eliminates that student.
   Fewer than two living students gives **The TA wins!**. The semester expiring
-  also gives the TA victory because overall coursework is not implemented yet.
+  with unfinished coursework also gives the TA victory.
 - All players see the winner, reason, and TA identity. The host can return everyone
   to the lobby and start another game. Eliminated students remain behind the
   inherited failure screen; Pitt gameplay is still missing.
@@ -166,9 +166,9 @@ separate computers. Verification details and remaining limitations follow the ta
 | 8 | Locally saved name/color and unique lobby colors | **Met:** original Session profile and roster system retained. |
 | 9 | Full campus with nine locations | **Partially met:** only the original UC lounge exists; dinners use an overlay. |
 | 10 | A 15-week semester clock | **Met:** original clock retained and paused during dinner discussion, voting and result display. |
-| 11 | Per-student task lists and prerequisites | **Not met:** Tab task list and prerequisite tracking are not implemented. |
-| 12 | Shared coursework bar updated at dinners | **Not met:** completing Proof Chain does not contribute to persistent coursework progress. |
-| 13 | Four starter minigames | **Partially met:** the inherited two-person Proof Chain Problem Set works; study group, programming assignment and quiz are missing. |
+| 11 | Per-student task lists and prerequisites | **Partially met:** Tab shows a real two-assignment checklist; the full 8–10-task distribution and prerequisites remain missing. |
+| 12 | Shared coursework bar updated at dinners | **Met:** host tracks each student assignment once and publishes a bar snapshot only when dinner starts. |
+| 13 | Four starter minigames | **Partially met:** original Proof Chain plus solo programming are implemented; study group and quiz remain missing. Programming uses click-to-order rather than drag-and-drop. |
 | 14 | Shared interface for independent minigame scenes | **Met:** original Minigame, TaskLogic and TaskRegistry remain in use. |
 | 15 | Collaboration invitations and acceptance | **Met:** original station proximity, accept/decline and timeout behavior retained. |
 | 16 | TA can capture or genuinely help a collaborator | **Met:** inherited TA invite choices retained; capture now also checks the auto-win rule. |
@@ -184,9 +184,9 @@ separate computers. Verification details and remaining limitations follow the ta
 | 26 | Voting out the TA wins for students | **Met:** every connected client receives student victory, reason and TA reveal. |
 | 27 | Wrongly voted-out students fail | **Partially met:** elimination, disappearance and failure reason work; Pitt conversion does not. |
 | 28 | Fewer than two living students automatically wins for TA | **Met:** checked after capture/vote elimination in games starting with 3+ players; two-player dev exception documented above. |
-| 29 | Semester timeout wins for TA when work is unfinished | **Met:** timeout shows TA victory and reveal; coursework is always unfinished in this slice. |
-| 30 | Students can win by finishing coursework; simultaneous-bar tie favors students | **Not met:** neither overall progress bar exists. |
-| 31 | Four grading stations and private TA grading progress | **Not met:** grading and its victory path are not implemented. |
+| 29 | Semester timeout wins for TA when work is unfinished | **Met:** timeout shows TA victory and reveal if neither side already won. |
+| 30 | Students can win by finishing coursework; simultaneous-bar tie favors students | **Met:** all assigned work wins immediately; the deferred host check gives coursework priority if both goals finish in the same check. |
+| 31 | Four grading stations and private TA grading progress | **Partially met:** four TA-only timed desks and private progress/win path work, but all desks are in the lounge and grading is not tuned to week 12–13. |
 | 32 | Shower meter, showering and movement/grading penalties | **Not met:** the shower system is not implemented. |
 | 33 | Pop quiz/no-hot-water emergencies and shared cooldown | **Not met:** neither emergency exists. |
 | 34 | Pitt movement, visibility, chat and solo task conversion | **Not met:** failed players still wait behind the inherited overlay. |
@@ -195,14 +195,14 @@ separate computers. Verification details and remaining limitations follow the ta
 | 37 | Host disconnect returns clients to menu | **Met:** original NetworkService and Session handling retained. |
 | 38 | Student/TA 60-second rejoin window and consequences | **Not met:** disconnected characters freeze; no rejoin recovery or expiry outcome is implemented. |
 | 39 | Tunable values in one balance resource | **Met:** dinner/chat settings added to the original GameBalance resource. |
-| 40 | Automated tests for all specified systems | **Partially met:** existing rules plus dinner ballots are covered; absent showers/Pitt/grading have no implementation to test. |
+| 40 | Automated tests for all specified systems | **Partially met:** existing rules, dinners, coursework, grading timers, programming and work-win priority are tested; absent shower/Pitt systems are not covered. |
 | 41 | Finished seasonal art, animations, wall fading and audio | **Not met:** the inherited placeholder visual approach remains. |
 | 42 | Windows/macOS release downloads | **Not met:** run from the pinned Godot editor; no exported release builds provided. |
 
 ### Validation and known limits
 
-- **33/33 GUT unit tests pass**, including all 26 inherited tests and seven new
-  dinner ballot tests. Use the command in Unit tests above; `-gdir` explicitly
+- **45/45 GUT unit tests pass**, including all 26 inherited tests, seven dinner
+  ballot tests and twelve coursework/solo-task/race tests. Use the command in Unit tests above; `-gdir` explicitly
   selects the tests and `-gexit` exits afterward.
 - Reproduce the local multiplayer smoke checks with
   `python3 tests/smoke_dinners.py --godot /path/to/Godot` (or omit `--godot` when
@@ -213,8 +213,13 @@ separate computers. Verification details and remaining limitations follow the ta
   Skip/resume, semester-timeout victory, and a student emergency call. These used
   accelerated debug timers. They are not a substitute for human multi-machine playtests.
 - A rendered dinner screen was checked at the project's 480×270 base resolution.
-- No grading or overall coursework victory exists. This is a playable voting
-  extension of the inherited slice, not the full game described in the spec.
+- This remains a small campus slice, not the full game described in the spec.
+  There are two assignments per student, rather than 8–10, and four grading desks
+  in one room rather than across campus. Grading takes four 15-second batches;
+  the spec's week-12/13 balance target has not been implemented or playtested.
+- Failed students' unfinished assignments remain in the coursework denominator.
+  Without Pitt solo conversion (still missing), coursework may become impossible
+  to finish after a failure; students can still win by voting out the TA.
 - A disconnect removes that player's dinner eligibility and ballot. Votes already
   cast for a disconnected candidate count as abstentions; those ballots remain
   locked. There is no host migration or implemented 60-second rejoin flow.
@@ -227,9 +232,77 @@ separate computers. Verification details and remaining limitations follow the ta
   README claimed the latter was ignored, but the downloaded repository lacked a
   `.gitignore`; this update makes that instruction accurate.
 
-Next priorities: human LAN playtest, then shared coursework progress and TA grading
-using the existing task interfaces, followed by professor reporting and Pitt
-conversion. Preserve the original design and complete one requirement at a time.
+Next priorities: human LAN playtest and balance tuning, fuller assignment lists and
+new task types, followed by professor reporting and Pitt conversion. Preserve the original design and complete one requirement at a time.
 
 `HANDOFF_REPORT.md` must be written personally by the student; it is deliberately
 not generated by AI. Phase 2 prompts and workflow corrections are in `prompt_log.md`.
+
+### Coursework and grading: second Phase 2 increment
+
+Each real student is assigned **one Problem Set and one Programming Assignment**.
+Press **Tab**, or click **Tasks (Tab)**, to inspect your own checklist. Completing
+an assignment counts once. A student who finished the Problem Set can still help
+another student who needs it; if both partners have finished it, no new session is
+started. TA cover assignments are tracked privately but contribute zero student
+progress. A TA helping a student complete the Problem Set still earns that student
+legitimate credit, as described in the original spec.
+
+The original Problem Set station stays at the whiteboard east of the bookshelf.
+The **Programming (1)** station is beside the small round table farther east.
+Stand in its yellow ring and click the prompt or press **E**. Click code blocks in
+execution order; a wrong block gives feedback without erasing the correct prefix.
+Finishing both assignments for every student immediately gives a coursework victory.
+Public progress remains a dinner snapshot until the next dinner; each player sees
+their own task completion immediately in their private checklist.
+
+Four red **Grade papers** rings are spread around the same lounge. All players can
+see them, but only the TA gets the action prompt or can start grading. Stand in a
+ring and press **E**, stay in the grading screen for **15 seconds**, then click
+**Finish grading batch**. Four batches win for the TA. Any desk can be reused;
+there are four alternatives so one spot cannot be camped. Cancelling, leaving or
+being interrupted by dinner loses the unfinished batch, not completed batches.
+The grading counter is sent only to the TA and appears in their top bar. The host
+validates the elapsed time, so an early client submit cannot finish a batch.
+
+These short balance values match this two-assignment prototype, not the full
+semester's intended 8–10 assignments. Edit `grading_batch_sec` and
+`grading_batches_required` in the existing balance resource to tune them. Debug
+runs also accept `--grading-sec=N --grading-batches=N` for quick tests.
+
+| Added file | Responsibility |
+| --- | --- |
+| `scripts/logic/coursework_tracker.gd` | Assigned student tasks, duplicate-credit prevention and aggregate completion |
+| `scripts/logic/win_conditions.gd` | Work-race outcome, with student priority for simultaneous completion |
+| `scripts/tasks/programming_task.gd` | Host-validated shuffled code-order puzzle, with three short program variants |
+| `scripts/tasks/grading_task.gd` | Host timer and completion validation for a grading batch |
+| `scenes/tasks/solo_minigame.gd` / `.tscn` | New solo-task UI using the inherited Minigame interface |
+| `tests/unit/test_coursework_tracker.gd` | Assignment counting, TA exclusion, duplicate prevention and winner priority |
+| `tests/unit/test_solo_tasks.gd` | Programming input validation/solvability and grading timer validation |
+
+Manual checks for this increment:
+
+1. As a student, Tab shows two unfinished assignments. Finish the Problem Set and
+   confirm just that entry changes to Done. Repeat with a partner who still needs
+   it; the finished player's assignment must not count twice.
+2. Complete programming in both student windows. With both students' Problem Sets
+   complete too, all players should see **Students win!** with the coursework reason.
+3. Restart and inspect a TA window. Grade a full batch, submit it, and confirm the
+   counter advances by one. Student windows must not show that counter or offer
+   grading actions. Finish four batches for **The TA wins!** with the grading reason.
+4. Cancel a grading batch early, or call dinner from another player during grading:
+   unfinished work must not count. Completed batches must remain.
+5. Have the TA finish a programming cover assignment with students idle, then call
+   dinner. The student bar must stay at 0%. Have a real student finish an assignment
+   and call a later dinner to see the newly increased snapshot.
+
+Pitt conversion is still missing. A task held by a failed student is not silently
+removed to inflate the bar; this limitation is reported above.
+
+Automated work-race checks can be reproduced with
+`python3 tests/smoke_work.py --godot /path/to/Godot`. They use local UDP ports
+17881–17883 and save logs to the ignored `.godot/work-smoke-results/` directory.
+Three connected-instance scenarios passed: students complete the original puzzle
+and the new solo task to win; the TA completes timed batches to win with no grading
+counter delivered to students; and TA cover programming leaves the dinner bar at 0%.
+All four earlier dinner/voting smoke scenarios also passed after this increment.

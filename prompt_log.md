@@ -47,3 +47,21 @@ clock behavior, and extended that test's run duration to eleven seconds.
 
 These are observed workflow mistakes and corrections, not invented user feedback.
 No AI-generated personal handoff report is included.
+
+## Second increment: user playtest and follow-up authorization
+
+User feedback (verbatim):
+
+> okay all of that works, what else needs added and also currently there is only one task spot to be done
+
+User implementation request (verbatim):
+
+> okay add what you think i have time for and what will get me lots of progres maybe the ta grading
+
+The assistant scoped this to the existing task framework: one additional solo
+programming puzzle, private assignment checklists, host-side deduplicated coursework,
+dinner-only public progress, four grading desks and private TA grading. Original
+classes, puzzle, movement, room and networking remain. The README explicitly marks
+the smaller assignment list, one-room station placement and short balance as partial
+implementation of the full spec. The student confirmed the previous increment's
+manual checks; the assistant does not claim the student has tested this increment yet.

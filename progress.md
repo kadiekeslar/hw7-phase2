@@ -71,3 +71,12 @@ the full map, grading or coursework progress. See README for the item-by-item
 requirements report, testing evidence and known limitations, and PHASE2_PLAN.md
 for the selected scope. Do not treat the original sign-off checklist as a claim
 that human multi-machine playtesting has occurred.
+
+### Coursework/grading follow-up
+
+Phase 2 now also includes a solo Programming Assignment, a private two-task checklist
+per player, one-time student assignment credit, dinner coursework snapshots, four
+TA-only grading desks, private batch progress and coursework/grading victory paths.
+The original two-player Proof Chain and interfaces remain. Full per-student task
+lists, task unlocks, full-campus desk placement and semester-length balance remain
+unfinished; see the updated requirement rows in README.

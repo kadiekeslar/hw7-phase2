@@ -21,3 +21,13 @@ Out of scope for this update: full campus/restaurant art, task-progress and grad
 bars, new minigames, professor reporting, Pitt gameplay, showers, emergencies,
 online relay hosting, and release exports. The README marks these as unfinished.
 The student's personal HANDOFF_REPORT.md remains the student's responsibility.
+
+## Second increment, authorized after the dinner playtest
+
+The user confirmed the dinner/voting checks worked and asked for more progress,
+possibly TA grading. Extend the same host/task interfaces with one solo programming
+assignment, deduplicated per-student assignment tracking, dinner-only public task
+progress, four TA grading desks, private grading progress and both work-race endings.
+Keep the original Problem Set, room, classes, RPC authority pattern and spec.
+Use two assignments per student and four 15-second grading batches as an explicitly
+limited prototype; full assignment distribution and semester balance remain unfinished.
