@@ -8,11 +8,11 @@ log was present in the inherited repository; this file records Phase 2 work only
 
 Initial review/preservation request:
 
-> okay now here is my repo that i created from this phase 2 step 0 here is the writeup, i need to first see what the project does so far, what should be my next steps and following all of the rules especially
+> here is a game I've inherited, along with the original author's spec explain how the code is structured, what works, and which acceptance criteria look closest to done. don't change anything yet
 
 Preservation instruction supplied by the user (verbatim):
 
-> You must keep at least 75% of the original work. You may reorganize, refactor, extend, and fix. You may not quietly discard the foundation and rebuild it in your own image. We compare your final submission against the initial commit of what you received.
+> You must keep at least 75% of the original work. You may reorganize, refactor, extend, and fix. You may not quietly discard the foundation and rebuild it in your own image. We compare your final submission against the initial commit of what you received. THIS IS IMPORTANT
 
 Subsequent review prompts:
 
