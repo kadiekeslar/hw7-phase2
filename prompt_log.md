@@ -58,10 +58,3 @@ User implementation request (verbatim):
 
 > okay add what you think i have time for and what will get me lots of progres maybe the ta grading
 
-The assistant scoped this to the existing task framework: one additional solo
-programming puzzle, private assignment checklists, host-side deduplicated coursework,
-dinner-only public progress, four grading desks and private TA grading. Original
-classes, puzzle, movement, room and networking remain. The README explicitly marks
-the smaller assignment list, one-room station placement and short balance as partial
-implementation of the full spec. The student confirmed the previous increment's
-manual checks; the assistant does not claim the student has tested this increment yet.
